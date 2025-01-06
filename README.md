@@ -14,3 +14,6 @@
 ## Используемые библиотеки
 - Aiogram 3.0
 - Asyncio
+
+## Авторы
+- [Никита Шидловский](https://github.com/1thenikita)
