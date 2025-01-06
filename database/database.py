@@ -61,6 +61,14 @@ def add_product(user_id, product_name, product_id, price):
     conn.close()
 
 
+def get_all_products():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT product_name, product_id, price FROM products",)
+    products = cursor.fetchall()
+    conn.close()
+    return products
+
 def get_products(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -83,7 +91,7 @@ def update_price(product_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    current_price = float(get_product_price(product_id)) / 100
+    current_price = float(get_product_price(product_id))
 
     # Добавляем запись в таблицу истории цен
     cursor.execute("""
@@ -94,6 +102,30 @@ def update_price(product_id):
     conn.commit()
     conn.close()
 
+def get_last_price(product_id):
+    """Получить последнюю цену товара"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT price FROM price_history
+    WHERE product_id = ?
+    ORDER BY timestamp DESC
+    LIMIT 1
+    """, (product_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+def add_price_history(product_id, price):
+    """Добавить запись в историю цен"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO price_history (product_id, price, timestamp)
+    VALUES (?, ?, datetime('now'))
+    """, (product_id, price))
+    conn.commit()
+    conn.close()
 
 def update_all_prices():
     conn = sqlite3.connect(DB_PATH)

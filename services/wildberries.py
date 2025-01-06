@@ -66,7 +66,7 @@ def get_product_price(id):
     :return: Float - стоимость
     """
     products = get_category(id)
-    return float(format_items(products)[0].get('price', None)) / 100
+    return (float(format_items(products)[0].get('price', None)) / 100)-10
 
 if __name__ == "__main__":
     category = get_category()
