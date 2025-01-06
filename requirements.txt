@@ -1,3 +1,5 @@
 asyncio
 aiogram
 environs
+requests
+apscheduler

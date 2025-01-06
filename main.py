@@ -2,8 +2,10 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
+
 from config import TOKEN
 from handlers import handlers
+from utils.apscheduler import start_scheduler
 
 logging.basicConfig(level=logging.INFO)
 
@@ -13,6 +15,9 @@ dp = Dispatcher()
 def main():
     # Регистрируем обработчики команд
     dp.include_router(handlers.router)
+
+    # Запуск планировщика
+    # start_scheduler()
 
     # Запускаем бота
     asyncio.run(start_bot())

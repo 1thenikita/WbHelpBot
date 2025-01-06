@@ -5,10 +5,43 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 
 from buttons.keyboards import main_menu_keyboard
-from database.database import add_user, add_product, get_products
+from database.database import add_user, add_product, get_products, update_price
+from services.wildberries import get_product_price
 from states import AddProductState
+from utils.regex import extract_product_id
 
 router = Router()
+
+
+# Обработчик команды добавления товара
+@router.message(Command('addlink'))
+async def add_product_command(message: types.Message):
+    try:
+        # Получаем ссылку из сообщения
+        url = message.text.split(maxsplit=1)[1]
+
+        # Извлекаем product_id из ссылки
+        product_id = extract_product_id(url)
+
+        # Добавляем товар в базу данных
+        user_id = message.from_user.id
+        username = message.from_user.username
+        add_user(user_id, username)  # Убедимся, что пользователь есть в БД
+
+        priceStr = get_product_price(product_id)
+        price = float(priceStr)
+        add_product(user_id, "Товар с Wildberries", product_id, price)
+
+        # Проверяем текущую цену товара
+        update_price(product_id)
+
+        await message.answer("Товар успешно добавлен и проверен!")
+    except IndexError:
+        await message.answer("Пожалуйста, отправьте ссылку на товар после команды.")
+    except ValueError as e:
+        await message.answer(str(e))
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
 
 
 @router.message(Command('start'))
@@ -43,7 +76,7 @@ async def process_product_name(message: types.Message, state: FSMContext):
     # Для упрощения используем фиктивный ID товара
     product_id = hash(product_name) % 1000000
 
-    add_product(user_id, product_name, product_id)
+    add_product(user_id, product_name, product_id, 1000)
     await message.answer(
         f"Товар '{product_name}' добавлен в отслеживаемые.",
         reply_markup=main_menu_keyboard()
@@ -62,6 +95,6 @@ async def list_products_command(message: types.Message):
         await message.answer("У вас нет отслеживаемых товаров.")
     else:
         response = "Ваши отслеживаемые товары:\n\n"
-        for name, product_id in products:
-            response += f"• {name} (ID: {product_id})\n"
+        for name, product_id, price in products:
+            response += f"• {name} (ID: {product_id}), стоимость сейчас - {price} рублей\n"
         await message.answer(response)
