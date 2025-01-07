@@ -5,3 +5,6 @@ services:
     build: .
     restart: always
     command: python main.py
+    environment:
+      - BOT_TOKEN
+      - BOT_PAY_TOKEN
