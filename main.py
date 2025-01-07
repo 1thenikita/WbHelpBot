@@ -15,9 +15,7 @@ dp = Dispatcher()
 def main():
     # Регистрируем обработчики команд
     dp.include_router(handlers.router)
-
-    # Запуск планировщика
-    # start_scheduler()
+    dp.include_router(payment.router)
 
     # Запускаем бота
     asyncio.run(start_bot())

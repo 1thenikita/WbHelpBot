@@ -1,5 +1,39 @@
 import requests
 
+def get_photo_image(id):
+    """
+    Получение картинки продукта.
+
+    :param id:
+    :return: Ссылка
+    """
+
+    id = int(id)
+
+    url = f'https://basket-13.wbbasket.ru/vol{int(id/100000)}/part{int(id/1000)}/{id}/info/ru/rich_v1.json'
+    headers = {
+        'Accept': '*/*',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Origin': 'https://www.wildberries.ru',
+        'Referer': 'https://www.wildberries.ru/catalog/elektronika/igry-i-razvlecheniya/aksessuary/garnitury',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+    }
+
+    try:
+        response = requests.get(url=url, headers=headers)
+
+        json = response.json()
+        return json.get('content')[0].get('blocks')[0].get('image').get('src') + '.webp'
+    except:
+        return None
 
 def get_category(id):
     """
@@ -55,6 +89,19 @@ def format_items(response):
             })
 
     return products
+
+def get_product(id):
+    """
+    Получает продукт через его ID.
+
+    Формат возвращения - json.
+
+    :param id: ID продукта
+    :return:
+    """
+    products = get_category(id)
+    return (format_items(products)[0])
+
 
 def get_product_price(id):
     """
