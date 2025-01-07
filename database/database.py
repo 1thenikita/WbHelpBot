@@ -1,5 +1,6 @@
 # db.py
 import sqlite3
+from datetime import datetime
 
 from services.wildberries import get_product_price
 
@@ -15,7 +16,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
         telegram_id INTEGER UNIQUE,
-        username TEXT
+        username TEXT,
+        subscription_status TEXT DEFAULT 'inactive', -- 'active' или 'inactive'
+        subscription_expiry TIMESTAMP NULL -- Дата окончания подписки
     )
     """)
 
@@ -51,8 +54,11 @@ def add_user(telegram_id, username):
     conn.commit()
     conn.close()
 
-
 def add_product(user_id, product_name, product_id, price):
+    # Проверяем количество товаров
+    if count_user_products(user_id) >= 3:  # Ограничение для бесплатных пользователей
+        raise Exception("Достигнуто максимальное количество отслеживаемых товаров.")
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO products (user_id, product_name, product_id, price) VALUES (?, ?, ?, ?)",
@@ -141,6 +147,104 @@ def update_all_prices():
         product_id = product[0]
         update_price(product_id)
 
+def get_price_history(product_id):
+    """Получить историю цен товара"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT timestamp, price FROM price_history
+    WHERE product_id = ?
+    ORDER BY timestamp DESC
+    """, (product_id,))
+    history = cursor.fetchall()
+    conn.close()
+    return history
+
+def get_product_details(product_id):
+    """Получить данные товара"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT product_name, product_id
+    FROM products
+    WHERE product_id = ?
+    """, (product_id,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return {
+            "name": result[0],
+            "id": result[1],
+        }
+    return None
+
+def count_user_products(user_id):
+    """Подсчитать количество товаров у пользователя"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT COUNT(*) FROM products
+    WHERE user_id = ?
+    """, (user_id,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+def update_subscription(telegram_id: int, status: str, expiry_date: datetime):
+    """
+    Обновляет статус подписки пользователя в базе данных.
+
+    :param telegram_id: Telegram ID пользователя.
+    :param status: Новый статус подписки ('active' или 'inactive').
+    :param expiry_date: Дата окончания подписки.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        expiry_date_str = expiry_date.strftime('%Y-%m-%d %H:%M:%S')
+
+        # Проверяем, существует ли пользователь
+        cursor.execute("SELECT COUNT(*) FROM users WHERE telegram_id = ?", (telegram_id,))
+        if cursor.fetchone()[0] == 0:
+            print("Пользователь не найден в базе данных.")
+            return
+
+        # Обновляем данные подписки
+        cursor.execute("""
+            UPDATE users
+            SET subscription_status = ?, subscription_expiry = ?
+            WHERE telegram_id = ?
+        """, (status, expiry_date_str, telegram_id))
+
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Ошибка при обновлении подписки: {e}")
+    finally:
+        conn.close()
+
+def get_user_subscription(telegram_id: int):
+    """
+    Получает информацию о подписке пользователя.
+
+    :param telegram_id: Telegram ID пользователя.
+    :return: Кортеж (статус подписки, дата окончания) или None.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT subscription_status, subscription_expiry
+            FROM users
+            WHERE telegram_id = ?
+        """, (telegram_id,))
+        return cursor.fetchone()
+    except sqlite3.Error as e:
+        print(f"Ошибка при получении подписки: {e}")
+        return None
+    finally:
+        conn.close()
 
 # Инициализация базы данных
 init_db()
