@@ -3,9 +3,10 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher
 
+import utils.apscheduler
 from config import TOKEN
-from handlers import handlers
-from utils.apscheduler import start_scheduler
+from database.database import update_all_prices
+from handlers import handlers, payment
 
 logging.basicConfig(level=logging.INFO)
 
