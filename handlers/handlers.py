@@ -198,7 +198,7 @@ async def view_item_command(message: types.Message, state: FSMContext):
         callback_data=f"delete_item {product_id}"
     )
 
-    await state.set_state(product_id=product_id)
+    await state.update_data(product_id=product_id)
 
     # Получаем данные товара
     product = get_product_info(product_id)
@@ -253,7 +253,7 @@ async def view_item_handler(callbackQuery: types.CallbackQuery, state: FSMContex
         callback_data=f"delete_item {product_id}"
     )
 
-    await state.set_state(product_id=product_id)
+    await state.update_data(product_id=product_id)
 
     # Получаем данные товара
     product = get_product_info(product_id)
