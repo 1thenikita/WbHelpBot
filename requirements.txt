@@ -3,3 +3,4 @@ aiogram
 environs
 requests
 apscheduler
+sqlalchemy

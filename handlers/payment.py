@@ -7,7 +7,7 @@ from aiogram.types import LabeledPrice
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import PAY_TOKEN
-from database.database import update_subscription, get_user_subscription
+from database.queries import update_subscription, get_user_subscription
 
 router = Router()
 PAYMENTS_TOKEN = PAY_TOKEN
@@ -54,15 +54,15 @@ async def buy_command(message: types.Message, command: CommandObject):
     )
     builder.adjust(1)
 
-    await message.answer_invoice(
+    await message.reply_invoice(
         title="Подписка на бота",
-        description="Активация подписки на бота на 1 месяц",
+        description="Активация подписки на бота на 1 месяц\nПозволяет добавлять больше товаров, поддерживать разработчика на новые функции и не только",
         provider_token=PAYMENTS_TOKEN,
         currency="rub",
         # TODO фото подписки добавить
-        # photo_url="https://www.aroged.com/wp-content/uploads/2022/06/Telegram-has-a-premium-subscription.jpg",
-        # photo_width=416,
-        # photo_height=234,
+        photo_url="https://static35.tgcnt.ru/posts/_0/a4/a4efcb9d0c3c4febd65362e692cd57fb.jpg",
+        photo_width=640,
+        photo_height=640,
         # photo_size=416,
         is_flexible=False,
         prices=[PRICE],
@@ -85,18 +85,18 @@ async def on_pre_checkout_query(
 
 @router.message(F.successful_payment)
 async def on_successful_payment(
-        message: types.Message
+        callbackQuery: types.CallbackQuery
 ):
     """
     Обработчик успешной оплаты.
 
-    :param message: Объект сообщения.
+    :param callbackQuery: Объект сообщения.
     :return:
     """
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=f"📊В статистику",
-        callback_data="stats"
+        text=f"📊В товары",
+        callback_data="list"
     )
     builder.button(
         text="🏠В начало",
@@ -105,14 +105,14 @@ async def on_successful_payment(
     builder.adjust(1)
 
     try:
-        telegram_id = message.from_user.id
-        now = datetime.utcnow()
+        telegram_id = callbackQuery.from_user.id
+        now = datetime.now()
 
         # Получаем текущий статус подписки
         user_subscription = get_user_subscription(telegram_id)
 
         if not user_subscription:
-            await message.answer("Пользователь не найден в системе.")
+            await callbackQuery.message.reply("Пользователь не найден в системе.")
             return
 
         subscription_status, subscription_expiry = user_subscription
@@ -128,10 +128,10 @@ async def on_successful_payment(
         update_subscription(telegram_id, 'active', expiry_date)
 
         # Отправляем сообщение пользователю
-        await message.reply(
+        await callbackQuery.message.reply(
             f"🎉 Благодарим за оплату!\n\n🔑 Ваша подписка действует до {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}.\n\nПриятного пользования!",
             reply_markup=builder.as_markup()
         )
 
     except Exception as e:
-        await message.answer(f"Произошла ошибка: {e}")
+        await callbackQuery.message.reply(f"Произошла ошибка: {e}")
